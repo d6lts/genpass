@@ -1,0 +1,35 @@
+<?php
+
+/**
+ * Remove the require on the password, on user creation.
+ */
+function genpass_form_alter(&$form, $form_state, $form_id) {
+  if ($form_id == 'user_register') {
+    if ($form['pass']) {
+      $form['pass']['#required'] = FALSE;
+      $form['#validate']["genpass_register_validate"] = array();
+    } 
+    else if ($form['account']['pass']) {
+      $form['account']['pass']['#required'] = FALSE;
+      $form['#validate']["genpass_register_validate2"] = array();
+    }
+  }
+}
+
+function genpass_register_validate(&$form, $form_state, $form_id) {
+//  drupal_set_message("genpass_register_validate: " . print_r($form_values, true));
+  if ($form_state['values']['pass'] == '') {
+    $pass = user_password();
+    form_set_value($form['pass'], $pass);
+    drupal_set_message("Generated password");
+  }
+}
+
+function genpass_register_validate2(&$form, $form_state, $form_id) {
+//  drupal_set_message("genpass_register_validate: " . print_r($form_values, true));
+  if ($form_state['values']['account']['pass'] == '') {
+    $pass = user_password();
+    form_set_value($form['account']['pass'], $pass);
+    drupal_set_message( "Generated password.");
+  }
+}

@@ -1,0 +1,5 @@
+; $Id$
+name = Generate Password
+description = Generate a password when adding a new user.
+core=6.x
+
