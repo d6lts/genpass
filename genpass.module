@@ -109,7 +109,7 @@ function genpass_user_admin_settings_validate($form, &$form_state) {
     form_set_error('genpass_length', t('The length of a generated password must be between 5 and 32')); return;
   }
   $entropy = $form_state['values']['genpass_entropy'];
-  $chars = array_unique(str_split($entropy));
+  $chars = array_unique(preg_split('//', $entropy, -1, PREG_SPLIT_NO_EMPTY));
   if(count($chars) < $length){ 
     form_set_error('genpass_entropy', t('The list of possible characters is not long or unique enough')); return;
   }
@@ -122,10 +122,10 @@ function genpass_user_admin_settings_submit($form, &$form_state) {
   if($mode >= 0 && $mode < 3) variable_set('genpass_mode', $mode);
   
   $length = $form_state['values']['genpass_length'];
-  if(is_numeric($length) && $length >= 5 && $length <= 32) variable_set('genpass_length', $mode);
+  if(is_numeric($length) && $length >= 5 && $length <= 32) variable_set('genpass_length', $length);
   
   $entropy = $form_state['values']['genpass_entropy'];
-  $chars = array_unique(str_split($entropy));
+  $chars = array_unique(preg_split('//', $entropy, -1, PREG_SPLIT_NO_EMPTY));
   if(count($chars) >= $length) variable_set('genpass_entropy',$entropy);
 }
 
