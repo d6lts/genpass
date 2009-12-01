@@ -5,7 +5,17 @@ function _genpass_default_entropy() {
 }
 
 /**
- * Generate a new password
+ * Generate a new password using the preferred password generation algorithm.
+ *
+ * @return a fresh password.
+ */
+function genpass_generate() {
+  return module_invoke(genpass_algorithm_module(), 'password');
+}
+
+/**
+ * Generate a new password using genpass's internal password generation
+ * algorithm.
  * Based on the original D6 user_password function (with more characters)
  *
  * @return a fresh password according to the settings made in /admin/user/settings
@@ -77,6 +87,16 @@ function genpass_form_alter(&$form, $form_state, $form_id) {
         '#default_value' => variable_get('genpass_entropy', _genpass_default_entropy()),
         '#description' => t('Give a list of possible characters for a generated password. Note that the list must contain at least X different characters where X is defined by the length you have given above.')
       ); 
+        // provide a selection mechanism to choose the preferred algorithm
+        // for generating passwords. Any module which implements hook_password
+        // is displayed here. 
+      $form['registration']['genpass_algorithm'] = array(
+        '#type' => 'radios', 
+        '#title' => t('Password generation algorithm'), 
+        '#default_value' => genpass_algorithm_module(), 
+        '#options' => genpass_add_samples(genpass_algorithm_modules()),
+        '#description' => t('If third party modules define a password generation algorithm, you can select which one to use. Note that algorithms other than genpass will ignore the preferred entropy and password length. The currently selected algorithm produced the password @pw', array('@pw' => genpass_generate()))
+      ); 
       $form['#validate'][] = 'genpass_user_admin_settings_validate';
       $form['#submit'][] = 'genpass_user_admin_settings_submit';
       break;
@@ -127,13 +147,22 @@ function genpass_user_admin_settings_submit($form, &$form_state) {
   $entropy = $form_state['values']['genpass_entropy'];
   $chars = array_unique(preg_split('//', $entropy, -1, PREG_SPLIT_NO_EMPTY));
   if(count($chars) >= $length) variable_set('genpass_entropy',$entropy);
+  
+  // keep track of the preferred algorithm for generating passwords. Make
+  // sure it is in the list of possible implementations, though.
+  $algorithm = $form_state['values']['genpass_algorithm'];
+  if(in_array($algorithm, genpass_algorithm_modules())) {
+    variable_set('genpass_algorithm', $algorithm);
+  } else {
+    variable_set('genpass_algorithm', 'genpass');
+  }
 }
 
 
 
 function genpass_register_validate($form, &$form_state) {
   if (empty($form_state['values']['pass']) && !form_get_errors() ) {
-    $pass = genpass_password();
+    $pass = genpass_generate();
     $pass_item =& genpass_get_pass_item($form);
     form_set_value($pass_item, $pass, $form_state);
     drupal_set_message(t('Generated password'));
@@ -144,7 +173,7 @@ function genpass_register_validate($form, &$form_state) {
 
 function genpass_user_admin_register_validate($form, &$form_state) {
   if (empty($form_state['values']['pass']) && !form_get_errors() ) {
-    $pass = genpass_password();
+    $pass = genpass_generate();
     $pass_item =& genpass_get_pass_item($form);
     form_set_value($pass_item, $pass, $form_state);
     drupal_set_message(t('Generated password'));
@@ -152,5 +181,53 @@ function genpass_user_admin_register_validate($form, &$form_state) {
   return $form;
 }
 
+/*
+ * Return an array of all modules which implement hook_password.
+ *
+ * @return array of module names.
+ */
+function genpass_algorithm_modules() {
+  // fetch a list of all modules which implement the password generation hook.
+  // to be in this list, a module must implement a hook, and return random
+  // passwords as strings.
 
+  $return = array();
 
+  foreach (module_implements('password') as $module) {
+    $return[$module] = $module;
+  }
+  
+  return $return;
+}
+
+/*
+ * Return the currently activated module for generating passwords. Does some.
+ *    validation to make sure the variable contains a valid module name.
+ *
+ * @return the name of the module whose implementation of hook_password is 
+ *    currently the preferred implementation.
+ */
+function genpass_algorithm_module() {
+  $modules = genpass_algorithm_modules();
+
+  $module = variable_get('genpass_algorithm', 'genpass');
+  
+  if(in_array($module, array_keys($modules))) {
+    return $module;
+  } else {
+    return 'genpass';
+  }
+}
+
+/*
+ * Adds some sample passwords to each module in an array.
+ */
+function genpass_add_samples($array) {
+  $return = array();
+
+  foreach($array as $module => $name) {
+    $return[$module] = $module . ' (' . t('examples') . ': ' . htmlentities(module_invoke($module, 'password')) . ', ' . htmlentities(module_invoke($module, 'password')) . ')';
+  }
+  
+  return $return;
+}
