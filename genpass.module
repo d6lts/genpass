@@ -49,15 +49,15 @@ function genpass_password() {
 
 
 /**
- * Helper function to find the password item in a form, since its position
+ * Helper function to find a item in the user form, since its position
  * within the form-array depends on the profile module (account-category).
  */ 
-function &genpass_get_pass_item(&$form) {
-  if (isset($form['account']['pass'])) {
-    return $form['account']['pass'];
+function &_genpass_get_form_item(&$form, $field) {
+  if (isset($form['account'][$field])) {
+    return $form['account'][$field];
   }
   else {
-    return $form['pass'];
+    return $form[$field];
   }
 }
 
@@ -113,7 +113,6 @@ function genpass_form_alter(&$form, $form_state, $form_id) {
     // User registration form
     case 'user_register':
       $mode = variable_get('genpass_mode', GENPASS_DEFAULT);
-      $pass_item =& genpass_get_pass_item($form);
       
       // Add validation function, where password may get set
       $form['#validate'][] = 'genpass_register_validate';
@@ -123,7 +122,8 @@ function genpass_form_alter(&$form, $form_state, $form_id) {
         // Switch to optional mode
         $mode = GENPASS_OPTIONAL;
         // Help avoid obvious consequence of password being optional
-        $form['notify']['#description'] = t('This is recommended when auto-generating the password; otherwise, neither you nor the new user will know the password.');
+        $notify_item =& _genpass_get_form_item($form, 'notify');
+        $notify_item['#description'] = t('This is recommended when auto-generating the password; otherwise, neither you nor the new user will know the password.');
       }
       
       // Pass mode to validation function
@@ -132,6 +132,7 @@ function genpass_form_alter(&$form, $form_state, $form_id) {
         '#value' => $mode,
       );
       
+      $pass_item =& _genpass_get_form_item($form, 'pass');
       switch ($mode) {
         // If password is optional, don't require it, and give the user an
         // indication of what will happen if left blank
@@ -177,7 +178,7 @@ function genpass_register_validate($form, &$form_state) {
     
     // Generate and set password
     $pass = genpass_generate();
-    $pass_item =& genpass_get_pass_item($form);
+    $pass_item =& _genpass_get_form_item($form, 'pass');
     form_set_value($pass_item, $pass, $form_state);
     
     // If administrator is creating the user, don't show the password
