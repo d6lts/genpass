@@ -107,7 +107,6 @@ function genpass_form_alter(&$form, $form_state, $form_id) {
         '#description' => t('If third party modules define a password generation algorithm, you can select which one to use. Note that algorithms other than genpass will ignore the preferred entropy and password length. The currently selected algorithm produced the password @pw', array('@pw' => genpass_generate())),
       ); 
       $form['#validate'][] = 'genpass_user_admin_settings_validate';
-      $form['#submit'][] = 'genpass_user_admin_settings_submit';
       break;
     
     // User registration form
