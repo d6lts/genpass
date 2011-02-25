@@ -1,4 +1,3 @@
-# $Id$
 # German translation of Drupal (general)
 # Copyright 2009 Volker Wegert <drupal@volker-wegert.de>
 # Generated from files:
