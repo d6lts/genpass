@@ -1,13 +1,13 @@
 <?php
 
-define('GENPASS_DEFAULT', 0);
+define('GENPASS_REQUIRED', 0);
 define('GENPASS_OPTIONAL', 1);
 define('GENPASS_RESTRICTED', 2);
 
 /**
  * Defines default characters allowed for passwords.
  */
-function _genpass_default_entropy() {
+function _GENPASS_REQUIRED_entropy() {
   return 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!#$%&()*+,-./:;<=>?@[]^_{|}~';
 }
 
@@ -32,7 +32,7 @@ function genpass_generate() {
 function genpass_password() {
   $pass = '';
   $length = variable_get('genpass_length', 8);
-  $allowable_characters = variable_get('genpass_entropy', _genpass_default_entropy());
+  $allowable_characters = variable_get('genpass_entropy', _GENPASS_REQUIRED_entropy());
 
   // Zero-based count of characters in the allowable list:
   $len = strlen($allowable_characters) - 1;
@@ -49,15 +49,15 @@ function genpass_password() {
 
 
 /**
- * Helper function to find the password item in a form, since its position
+ * Helper function to find a item in the user form, since its position
  * within the form-array depends on the profile module (account-category).
  */ 
-function &genpass_get_pass_item(&$form) {
-  if (isset($form['account']['pass'])) {
-    return $form['account']['pass'];
+function &_genpass_get_form_item(&$form, $field) {
+  if (isset($form['account'][$field])) {
+    return $form['account'][$field];
   }
   else {
-    return $form['pass'];
+    return $form[$field];
   }
 }
 
@@ -65,24 +65,24 @@ function &genpass_get_pass_item(&$form) {
  * Implementation of hook_form_alter()
  */
 function genpass_form_alter(&$form, $form_state, $form_id) {
-  
+
   switch ($form_id) {
-    
-    // User admin settings form
+
+    // User admin settings form at admin/config/people/accounts
     case 'user_admin_settings':
-    
-      $form['registration']['genpass_mode'] = array(
+
+      $form['registration_cancellation']['genpass_mode'] = array(
         '#type' => 'radios',
         '#title' => t('Password handling'),
-        '#default_value' => variable_get('genpass_mode', GENPASS_DEFAULT),
+        '#default_value' => variable_get('genpass_mode', GENPASS_REQUIRED),
         '#options' => array(
-          GENPASS_DEFAULT => t('Users must enter a password on registration (default Drupal behaviour).'),
-          GENPASS_OPTIONAL => t('Users may enter a password on registration. If not, a random password will be generated.'),
-          GENPASS_RESTRICTED => t('Users cannot choose a password on registration. It will be generated.')
+          GENPASS_REQUIRED => t('Users <strong>must</strong> enter a password on registration. This is disabled if e-mail verification is enabled above.'),
+          GENPASS_OPTIONAL => t('Users <strong>may</strong> enter a password on registration. If left empty, a random password will be generated. This always applies when an administer is creating the account.'),
+          GENPASS_RESTRICTED => t('Users <strong>cannot</strong> enter a password on registration; a random password will be generated. This always applies for the regular user registration form if e-mail verification is enabled above.'),
         ),
-        '#description' => t('Choose a password handling mode for new users. Note that if "Require e-mail verification when a visitor creates an account" is selected above, then the third option always applies for the regular user registration form. Also note that for manual user creation by an administrator, the second option always applies.'),
+        '#description' => t('Choose a password handling mode for new users.'),
       );
-      $form['registration']['genpass_length'] = array(
+      $form['registration_cancellation']['genpass_length'] = array(
         '#type' => 'textfield',
         '#title' => t('Generated password length'),
         '#default_value' => variable_get('genpass_length', 8),
@@ -90,30 +90,31 @@ function genpass_form_alter(&$form, $form_state, $form_id) {
         '#maxlength' => 2,
         '#description' => t('Set the length of generated passwords here. Allowed range: 5 to 32.'),
       );
-      $form['registration']['genpass_entropy'] = array(
+      $form['registration_cancellation']['genpass_entropy'] = array(
         '#type' => 'textfield',
         '#title' => t('Generated password entropy'),
-        '#default_value' => variable_get('genpass_entropy', _genpass_default_entropy()),
+        '#size' => 100,
+        '#default_value' => variable_get('genpass_entropy', _GENPASS_REQUIRED_entropy()),
         '#description' => t('Give a list of possible characters for a generated password. Note that the list must contain at least X different characters where X is defined by the length you have given above.'),
       );
       // Provide a selection mechanism to choose the preferred algorithm for
       // generating passwords. Any module which implements hook_password() is
       // displayed here.
-      $form['registration']['genpass_algorithm'] = array(
+      $form['registration_cancellation']['genpass_algorithm'] = array(
         '#type' => 'radios',
         '#title' => t('Password generation algorithm'),
         '#default_value' => genpass_algorithm_module(),
         '#options' => genpass_add_samples(genpass_algorithm_modules()),
-        '#description' => t('If third party modules define a password generation algorithm, you can select which one to use. Note that algorithms other than genpass will ignore the preferred entropy and password length. The currently selected algorithm produced the password @pw', array('@pw' => genpass_generate())),
+        '#description' => t('If third party modules define a password generation algorithm, you can select which one to use. Note that algorithms other than genpass will ignore the preferred entropy and password length. The currently selected algorithm produced the password @pw.', array('@pw' => genpass_generate())),
       ); 
       $form['#validate'][] = 'genpass_user_admin_settings_validate';
-      $form['#submit'][] = 'genpass_user_admin_settings_submit';
+      // Move the "When cancelling a user account" field down.
+      $form['registration_cancellation']['user_cancel_method']['#weight'] = 1;
       break;
-    
-    // User registration form
-    case 'user_register':
-      $mode = variable_get('genpass_mode', GENPASS_DEFAULT);
-      $pass_item =& genpass_get_pass_item($form);
+
+    // User registration form at admin/people/create
+    case 'user_register_form':
+      $mode = variable_get('genpass_mode', GENPASS_REQUIRED);
       
       // Add validation function, where password may get set
       $form['#validate'][] = 'genpass_register_validate';
@@ -123,7 +124,8 @@ function genpass_form_alter(&$form, $form_state, $form_id) {
         // Switch to optional mode
         $mode = GENPASS_OPTIONAL;
         // Help avoid obvious consequence of password being optional
-        $form['notify']['#description'] = t('This is recommended when auto-generating the password; otherwise, neither you nor the new user will know the password.');
+        $notify_item =& _genpass_get_form_item($form, 'notify');
+        $notify_item['#description'] = t('This is recommended when auto-generating the password; otherwise, neither you nor the new user will know the password.');
       }
       
       // Pass mode to validation function
@@ -132,6 +134,7 @@ function genpass_form_alter(&$form, $form_state, $form_id) {
         '#value' => $mode,
       );
       
+      $pass_item =& _genpass_get_form_item($form, 'pass');
       switch ($mode) {
         // If password is optional, don't require it, and give the user an
         // indication of what will happen if left blank
@@ -177,7 +180,7 @@ function genpass_register_validate($form, &$form_state) {
     
     // Generate and set password
     $pass = genpass_generate();
-    $pass_item =& genpass_get_pass_item($form);
+    $pass_item =& _genpass_get_form_item($form, 'pass');
     form_set_value($pass_item, $pass, $form_state);
     
     // If administrator is creating the user, don't show the password
