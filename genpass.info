@@ -1,3 +1,4 @@
 name = Generate Password
 description = Generate a password when adding a new user.
 core = 7.x
+configure = admin/config/people/accounts
