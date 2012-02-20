@@ -140,7 +140,7 @@ function genpass_form_alter(&$form, $form_state, $form_id) {
         // indication of what will happen if left blank
         case GENPASS_OPTIONAL:
           $pass_item['#required'] = FALSE;
-          $pass_item['#description'] .= (empty($pass_item['#description']) ? '' : $pass_item['#description'] . ' ') . t('If left blank, a password will be generated for you.');
+          $pass_item['#description'] = (empty($pass_item['#description']) .) . t('If left blank, a password will be generated for you.');
           break;
         // If password is restricted, remove access
         case GENPASS_RESTRICTED:
