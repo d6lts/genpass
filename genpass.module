@@ -144,7 +144,7 @@ function genpass_form_alter(&$form, $form_state, $form_id) {
       $form['#validate'][] = 'genpass_register_validate';
 
       // Administrator is creating the user
-      if ($_GET['q'] == 'admin/user/user/create') {
+      if ($_GET['q'] == 'admin/people/create') {
         // Switch to optional mode
         $mode = GENPASS_OPTIONAL;
         // Help avoid obvious consequence of password being optional
