@@ -200,38 +200,44 @@ function genpass_user_admin_settings_validate($form, &$form_state) {
  * User registration validation.
  */
 function genpass_register_validate($form, &$form_state) {
-  if (empty($form_state['values']['pass']) && !form_get_errors()) {
-
-    // Generate and set password
+  if (empty($form_state['values']['pass'])) {
+    // Generate and set password.
     $pass = genpass_generate();
     $pass_item =& _genpass_get_form_item($form, 'pass');
     form_set_value($pass_item, $pass, $form_state);
 
-    $display = variable_get('genpass_display', GENPASS_DISPLAY_BOTH);
+    if (!form_get_errors()) {
+      $display = variable_get('genpass_display', GENPASS_DISPLAY_BOTH);
 
-    // Administrator created the user.
-    if ($_GET['q'] == 'admin/people/create') {
-      $message = t('Since you did not provide a password, it was generated automatically for this account.');
-      if (in_array($display, array(GENPASS_DISPLAY_ADMIN, GENPASS_DISPLAY_BOTH))) {
-        $message .= ' ' . t('The password is: <strong class="genpass-password">@password</strong>', array('@password' => $pass));
-      }
-    }
-    // Optional - User did not provide password, so it was generated
-    elseif ($form_state['values']['genpass_mode'] == GENPASS_OPTIONAL) {
-      $message = t('Since you did not provide a password, it was generated for you.');
-      if (in_array($display, array(GENPASS_DISPLAY_USER, GENPASS_DISPLAY_BOTH))) {
-        $message .= ' ' . t('Your password is: <strong class="genpass-password">@password</strong>', array('@password' => $pass));
-      }
-    }
-    // Restricted - User was forced to receive a generated password
-    elseif ($form_state['values']['genpass_mode'] == GENPASS_RESTRICTED && in_array($display, array(GENPASS_DISPLAY_USER, GENPASS_DISPLAY_BOTH))) {
-      $message = t('The following password was generated for you: <strong class="genpass-password">@password</strong>', array('@password' => $pass));
-    }
+      // Administrator created the user.
+      if ($_GET['q'] == 'admin/people/create') {
+        $message = t('Since you did not provide a password, it was generated automatically for this account.');
 
-    if (!empty($message)) {
-      drupal_set_message($message);
+        if (in_array($display, array(GENPASS_DISPLAY_ADMIN, GENPASS_DISPLAY_BOTH))) {
+          $message .= ' ' . t('The password is: <strong class="genpass-password">@password</strong>', array('@password' => $pass));
+        }
+      }
+
+      // Optional - User did not provide password, so it was generated
+      elseif ($form_state['values']['genpass_mode'] == GENPASS_OPTIONAL) {
+        $message = t('Since you did not provide a password, it was generated for you.');
+
+        if (in_array($display, array(GENPASS_DISPLAY_USER, GENPASS_DISPLAY_BOTH))) {
+          $message .= ' ' . t('Your password is: <strong class="genpass-password">@password</strong>', array('@password' => $pass));
+        }
+      }
+
+      // Restricted - User was forced to receive a generated password
+      elseif ($form_state['values']['genpass_mode'] == GENPASS_RESTRICTED && in_array($display, array(GENPASS_DISPLAY_USER, GENPASS_DISPLAY_BOTH))) {
+        $message = t('The following password was generated for you: <strong class="genpass-password">@password</strong>', array('@password' => $pass));
+      }
+
+      if (!empty($message)) {
+        drupal_set_message($message);
+      }
     }
   }
+
   return $form;
 }
 
