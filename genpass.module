@@ -10,13 +10,6 @@ define('GENPASS_DISPLAY_USER', 2);
 define('GENPASS_DISPLAY_BOTH', 3);
 
 /**
- * Implementation of hook_init().
- */
-function genpass_init() {
-  drupal_add_css(drupal_get_path('module', 'genpass') . '/genpass.css');
-}
-
-/**
  * Defines default characters allowed for passwords.
  */
 function _genpass_default_entropy() {
@@ -210,19 +203,19 @@ function genpass_register_validate($form, &$form_state) {
     if ($_GET['q'] == 'admin/user/user/create') {
       $message = t('Since you did not provide a password, it was generated automatically for this account.');
       if (in_array($display, array(GENPASS_DISPLAY_ADMIN, GENPASS_DISPLAY_BOTH))) {
-        $message .= ' ' . t('The password is: <strong class="genpass-password">@password</strong>', array('@password' => $pass));
+        $message .= ' ' . t('The password is: <strong class="nowrap">@password</strong>', array('@password' => $pass));
       }
     }
     // Optional - User did not provide password, so it was generated.
     elseif ($form_state['values']['genpass_mode'] == GENPASS_OPTIONAL) {
       $message = t('Since you did not provide a password, it was generated for you.');
       if (in_array($display, array(GENPASS_DISPLAY_USER, GENPASS_DISPLAY_BOTH))) {
-        $message .= ' ' . t('Your password is: <strong class="genpass-password">@password</strong>', array('@password' => $pass));
+        $message .= ' ' . t('Your password is: <strong class="nowrap">@password</strong>', array('@password' => $pass));
       }
     }
     // Restricted - User was forced to receive a generated password.
     elseif ($form_state['values']['genpass_mode'] == GENPASS_RESTRICTED && in_array($display, array(GENPASS_DISPLAY_USER, GENPASS_DISPLAY_BOTH))) {
-      $message = t('The following password was generated for you: <strong class="genpass-password">@password</strong>', array('@password' => $pass));
+      $message = t('The following password was generated for you: <strong class="nowrap">@password</strong>', array('@password' => $pass));
     }
 
     if (!empty($message)) {
