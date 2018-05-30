@@ -1,12 +1,44 @@
 <?php
 
 /**
- * Implementation of hook_uninstall().
+ * @file
+ * Genpass module upgrade/uninstall code.
+ */
+
+/**
+ * Document and then remove legacy variables.
+ */
+function genpass_update_7200() {
+  $variables = array(
+    'genpass_algorithm',
+    'genpass_display',
+    'genpass_entropy',
+    'genpass_length',
+    'genpass_mode',
+  );
+  foreach ($variables as $variable) {
+    $value = json_encode(variable_get($variable, t('Not applicable: the variable was unset')));
+    watchdog('genpass', 'The legacy variable @variable had value @value', array(
+      '@variable' => $variable,
+      '@value' => $value,
+    ), WATCHDOG_INFO);
+    variable_del($variable);
+  }
+
+  watchdog('genpass', 'All legacy genpass module variables have been deleted. Their prior values were recorded.', array(), WATCHDOG_WARNING);
+}
+
+/**
+ * Implements hook_uninstall().
  */
 function genpass_uninstall() {
+  // Remove legacy variables in case they were somehow still around.
   variable_del('genpass_algorithm');
   variable_del('genpass_display');
   variable_del('genpass_entropy');
   variable_del('genpass_length');
   variable_del('genpass_mode');
+
+  // Also remove current variables.
+  variable_del('genpass_display_password');
 }
