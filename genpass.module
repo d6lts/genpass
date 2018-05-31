@@ -9,18 +9,53 @@
  * Implements hook_form_FORM_ID_alter().
  */
 function genpass_form_user_register_form_alter(&$form, &$form_state) {
+  // This form structure only exists for admin creation.
   if (isset($form['account']['pass'])) {
-    drupal_set_message('modifying admin form');
     $form['account']['pass']['#access'] = FALSE;
     $form['account']['pass']['#type'] = 'value';
     $form['account']['genpass_message'] = array(
       '#type' => 'markup',
-      '#markup' => t("<h3>Password</h3><p>A strong password will be generated automatically. The user should use the password recent function to set their password.</p>"),
+      '#markup' => t("<h3>Password</h3><p>A strong password will be generated automatically. The user should use the password reset function to set their password.</p>"),
     );
 
     // Add validation function, where password is actually set.
     $form['#validate'][] = 'genpass_admin_create_validate';
   }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function genpass_form_user_profile_form_alter(&$form, &$form_state) {
+  // Only change the edit form for admins modifying another user.
+  if ($form['#user']->uid != $GLOBALS['user']->uid &&
+    isset($form['account']['pass'])) {
+
+    // When editing, give admins a checkbox to change the password.
+    $form['account']['pass']['#access'] = FALSE;
+    $form['account']['genpass_generate'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Generate a new strong password. Their current password will stop working.'),
+      '#prefix' => '<h3>' . t('Password') . '</h3>',
+    );
+    $form['#validate'][] = 'genpass_admin_edit_validate';
+  }
+}
+
+/**
+ * Form validate function to optionally set a password value.
+ */
+function genpass_admin_edit_validate($form, &$form_state) {
+  if (!empty($form_state['values']['genpass_generate'])) {
+    $password = genpass_genpass();
+    // If the site wants to show the password, show it.
+    if (variable_get('genpass_display_password', FALSE)) {
+      drupal_set_message(t('Automatically generated a password %password for this user.', array('%password' => $password)));
+    }
+
+    form_set_value($form['account']['pass'], $password, $form_state);
+  }
+  return $form;
 }
 
 /**
@@ -30,13 +65,12 @@ function genpass_admin_create_validate($form, &$form_state) {
   $password = genpass_genpass();
   // If the site wants to show the password, show it.
   if (variable_get('genpass_display_password', FALSE)) {
-    drupal_set_message(t('Your password is: %password.', array('%password' => $password)));
+    drupal_set_message(t('The automatically generated password is: %password.', array('%password' => $password)));
   }
 
   form_set_value($form['account']['pass'], $password, $form_state);
   return $form;
 }
-
 
 /**
  * Generates a pretty, pretty, pretty good password.
