@@ -1,12 +1,13 @@
 <?php
 
-/*
+/**
  * Implements hook_uninstall().
  */
+
 function genpass_uninstall() {
-  variable_del('genpass_algorithm');
-  variable_del('genpass_display');
-  variable_del('genpass_entropy');
-  variable_del('genpass_length');
-  variable_del('genpass_mode');
+    \Drupal::queue('genpass_algorithm')->deleteQueue();
+    \Drupal::queue('genpass_display')->deleteQueue();
+    \Drupal::queue('genpass_entropy')->deleteQueue();
+    \Drupal::queue('genpass_length')->deleteQueue();
+    \Drupal::queue('genpass_mode')->deleteQueue();
 }
