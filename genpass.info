@@ -2,9 +2,3 @@ name = Generate Password
 description = Generate a password when adding a new user.
 core=6.x
 
-
-; Information added by Drupal 6 LTS vendors on 2018-06-27
-version = "6.x-1.5"
-core = "6.x"
-project = "genpass"
-datestamp = "1530121230"
